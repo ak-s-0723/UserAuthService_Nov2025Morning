@@ -1,5 +1,8 @@
 package org.example.userauthservice_nov2025morning.services;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.MacAlgorithm;
+import org.antlr.v4.runtime.misc.Pair;
 import org.example.userauthservice_nov2025morning.exceptions.PasswordMismatchException;
 import org.example.userauthservice_nov2025morning.exceptions.UserAlreadyExistException;
 import org.example.userauthservice_nov2025morning.exceptions.UserNotRegisteredException;
@@ -12,10 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @Service
 public class AuthService implements IAuthService {
@@ -64,7 +66,7 @@ public class AuthService implements IAuthService {
     }
 
     @Override
-    public User login(String email, String password) {
+    public Pair<User,String> login(String email, String password) {
         Optional<User> userOptional = userRepo.findByEmail(email);
 
         if  (userOptional.isEmpty()) {
@@ -78,6 +80,35 @@ public class AuthService implements IAuthService {
 
         //JWT creation on friday
 
-        return user;
+//        String message = "{\n" +
+//                "   \"email\": \"anurag@gmail.com\",\n" +
+//                "   \"roles\": [\n" +
+//                "      \"instructor\",\n" +
+//                "      \"buddy\"\n" +
+//                "   ],\n" +
+//                "   \"expirationDate\": \"2ndApril2026\"\n" +
+//                "}";
+//
+//        byte[] content = message.getBytes(StandardCharsets.UTF_8);
+
+        Map<String,Object> claims = new HashMap<>();
+        claims.put("userId",user.getId());
+
+        List<String> roles = new ArrayList<>();
+        for(Role role : user.getRoles()) {
+            roles.add(role.getValue());
+        }
+        claims.put("access",roles);
+        Long currentTime = System.currentTimeMillis();
+        claims.put("iat",currentTime);
+        claims.put("exp",currentTime+100000);
+        claims.put("issuer","scaler");
+
+        MacAlgorithm algorithm = Jwts.SIG.HS256;
+        SecretKey secretKey = algorithm.key().build();
+
+        String token = Jwts.builder().claims(claims).signWith(secretKey).compact();
+
+        return new Pair<>(user,token);
     }
 }
