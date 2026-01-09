@@ -9,6 +9,7 @@ import org.example.userauthservice_nov2025morning.models.User;
 import org.example.userauthservice_nov2025morning.repos.RoleRepo;
 import org.example.userauthservice_nov2025morning.repos.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -25,6 +26,9 @@ public class AuthService implements IAuthService {
     @Autowired
     private RoleRepo roleRepo;
 
+    @Autowired
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
+
     @Override
     public User signup(String name, String email, String password) {
         Optional<User> userOptional = userRepo.findByEmail(email);
@@ -35,7 +39,7 @@ public class AuthService implements IAuthService {
 
         User user = new User();
         user.setEmail(email);
-        user.setPassword(password); //ToDo - to be encoded by Anurag on friday
+        user.setPassword(bCryptPasswordEncoder.encode(password));
         user.setName(name);
         user.setState(State.ACTIVE);
         user.setCreatedAt(new Date());
@@ -68,7 +72,7 @@ public class AuthService implements IAuthService {
         }
 
         User user = userOptional.get();
-        if(!password.equals(user.getPassword())) {
+        if(!bCryptPasswordEncoder.matches(password,user.getPassword())) {
             throw new PasswordMismatchException("Please pass correct password");
         }
 
