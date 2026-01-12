@@ -1,10 +1,7 @@
 package org.example.userauthservice_nov2025morning.controllers;
 
 import org.antlr.v4.runtime.misc.Pair;
-import org.example.userauthservice_nov2025morning.dtos.LoginRequestDto;
-import org.example.userauthservice_nov2025morning.dtos.RoleDto;
-import org.example.userauthservice_nov2025morning.dtos.SignupRequestDto;
-import org.example.userauthservice_nov2025morning.dtos.UserDto;
+import org.example.userauthservice_nov2025morning.dtos.*;
 import org.example.userauthservice_nov2025morning.exceptions.PasswordMismatchException;
 import org.example.userauthservice_nov2025morning.exceptions.UserAlreadyExistException;
 import org.example.userauthservice_nov2025morning.models.Role;
@@ -58,6 +55,11 @@ public class AuthController {
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.SET_COOKIE,token);
         return new ResponseEntity<>(userDto, headers, HttpStatus.OK);
+    }
+
+    @PostMapping("/validateToken")
+    public void validateToken(@RequestBody ValidateTokenDto validateTokenDto) {
+       authService.validateToken(validateTokenDto.getToken());
     }
 
     private UserDto from(User user) {
