@@ -1,10 +1,14 @@
 package org.example.userauthservice_nov2025morning.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.antlr.v4.runtime.misc.Pair;
+import org.example.userauthservice_nov2025morning.clients.KafkaClient;
+import org.example.userauthservice_nov2025morning.dtos.EmailDto;
 import org.example.userauthservice_nov2025morning.exceptions.*;
 import org.example.userauthservice_nov2025morning.models.Role;
 import org.example.userauthservice_nov2025morning.models.Session;
@@ -39,6 +43,12 @@ public class AuthService implements IAuthService {
     @Autowired
     private SecretKey secretKey;
 
+    @Autowired
+    private KafkaClient kafkaClient;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Override
     public User signup(String name, String email, String password) {
         Optional<User> userOptional = userRepo.findByEmail(email);
@@ -70,7 +80,23 @@ public class AuthService implements IAuthService {
         List<Role> roleList = new ArrayList<>();
         roleList.add(role);
         user.setRoles(roleList);
-        return userRepo.save(user);
+
+        //Putting a message into Kafka/Message Queue
+
+        EmailDto emailDto = new EmailDto();
+        emailDto.setSubject("Welcome to Scaler");
+        emailDto.setBody("Have a good learning experience");
+        emailDto.setTo(email);
+        emailDto.setFrom("anuragonhiring@gmail.com");
+
+        try {
+            kafkaClient.sendMessage("signup",
+                    objectMapper.writeValueAsString(emailDto));
+
+            return userRepo.save(user);
+        }catch (JsonProcessingException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @Override
